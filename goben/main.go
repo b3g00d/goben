@@ -15,7 +15,9 @@ const version = "0.6"
 
 type hostList []string
 
-type config struct {
+
+// Config for client or server use
+type Config struct {
 	hosts          hostList
 	listeners      hostList
 	defaultPort    string
@@ -62,7 +64,7 @@ func main() {
 
 	log.Printf("goben version " + version + " runtime " + runtime.Version() + " GOMAXPROCS=" + strconv.Itoa(runtime.GOMAXPROCS(0)) + " OS=" + runtime.GOOS + " arch=" + runtime.GOARCH)
 
-	app := config{}
+	app := Config{}
 
 	flag.Var(&app.hosts, "hosts", "comma-separated list of hosts\nyou may append an optional port to every host: host[:port]")
 	flag.Var(&app.listeners, "listeners", "comma-separated list of listen addresses\nyou may prepend an optional host to every port: [host]:port")

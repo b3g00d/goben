@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-func open(app *config) {
+func open(app *Config) {
 
 	var proto string
 	if app.udp {
@@ -86,7 +86,7 @@ func open(app *config) {
 	log.Printf("aggregate writing: %d Mbps %d send/s", aggWriter.Mbps, aggWriter.Cps)
 }
 
-func spawnClient(app *config, wg *sync.WaitGroup, conn net.Conn, c, connections int, isTLS bool, aggReader, aggWriter *aggregate) {
+func spawnClient(app *Config, wg *sync.WaitGroup, conn net.Conn, c, connections int, isTLS bool, aggReader, aggWriter *aggregate) {
 	wg.Add(1)
 	go handleConnectionClient(app, wg, conn, c, connections, isTLS, aggReader, aggWriter)
 }
@@ -107,7 +107,7 @@ type ExportInfo struct {
 	Output ChartData
 }
 
-func sendOptions(app *config, conn io.Writer) error {
+func sendOptions(app *Config, conn io.Writer) error {
 	opt := app.opt
 	if app.udp {
 		var optBuf bytes.Buffer
@@ -131,7 +131,7 @@ func sendOptions(app *config, conn io.Writer) error {
 	return nil
 }
 
-func handleConnectionClient(app *config, wg *sync.WaitGroup, conn net.Conn, c, connections int, isTLS bool, aggReader, aggWriter *aggregate) {
+func handleConnectionClient(app *Config, wg *sync.WaitGroup, conn net.Conn, c, connections int, isTLS bool, aggReader, aggWriter *aggregate) {
 	defer wg.Done()
 
 	log.Printf("handleConnectionClient: starting %s %d/%d %v", protoLabel(isTLS), c, connections, conn.RemoteAddr())
@@ -368,4 +368,9 @@ func formatAddress(con net.Conn) string {
 		return strings.Replace(fmt.Sprintf("%v", con.RemoteAddr()), ":", "-", 1)
 	}
 	return fmt.Sprintf("%v", con.RemoteAddr())
+}
+
+// BuildClient for another lib to use
+func BuildClient(app *Config) {
+	open(app)
 }

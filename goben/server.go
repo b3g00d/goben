@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func serve(app *config) {
+func serve(app *Config) {
 
 	if app.tls && !fileExists(app.tlsKey) {
 		log.Printf("key file not found: %s - disabling TLS", app.tlsKey)
@@ -40,7 +40,7 @@ func fileExists(path string) bool {
 	return err == nil
 }
 
-func listenTCP(app *config, wg *sync.WaitGroup, h string) {
+func listenTCP(app *Config, wg *sync.WaitGroup, h string) {
 	log.Printf("listenTCP: TLS=%v spawning TCP listener: %s", app.tls, h)
 
 	// first try TLS
@@ -62,12 +62,12 @@ func listenTCP(app *config, wg *sync.WaitGroup, h string) {
 	spawnAcceptLoopTCP(app, wg, listener, false)
 }
 
-func spawnAcceptLoopTCP(app *config, wg *sync.WaitGroup, listener net.Listener, isTLS bool) {
+func spawnAcceptLoopTCP(app *Config, wg *sync.WaitGroup, listener net.Listener, isTLS bool) {
 	wg.Add(1)
 	go handleTCP(app, wg, listener, isTLS)
 }
 
-func listenTLS(app *config, h string) (net.Listener, error) {
+func listenTLS(app *Config, h string) (net.Listener, error) {
 	cert, errCert := tls.LoadX509KeyPair(app.tlsCert, app.tlsKey)
 	if errCert != nil {
 		log.Printf("listenTLS: failure loading TLS key pair: %v", errCert)
@@ -75,12 +75,12 @@ func listenTLS(app *config, h string) (net.Listener, error) {
 		return nil, errCert
 	}
 
-	config := &tls.Config{Certificates: []tls.Certificate{cert}}
-	listener, errListen := tls.Listen("tcp", h, config)
+	Config := &tls.Config{Certificates: []tls.Certificate{cert}}
+	listener, errListen := tls.Listen("tcp", h, Config)
 	return listener, errListen
 }
 
-func listenUDP(app *config, wg *sync.WaitGroup, h string) {
+func listenUDP(app *Config, wg *sync.WaitGroup, h string) {
 	log.Printf("serve: spawning UDP listener: %s", h)
 
 	udpAddr, errAddr := net.ResolveUDPAddr("udp", h)
@@ -120,7 +120,7 @@ LOOP:
 	return host + port
 }
 
-func handleTCP(app *config, wg *sync.WaitGroup, listener net.Listener, isTLS bool) {
+func handleTCP(app *Config, wg *sync.WaitGroup, listener net.Listener, isTLS bool) {
 	defer wg.Done()
 
 	var id int
@@ -147,7 +147,7 @@ type udpInfo struct {
 	id     int
 }
 
-func handleUDP(app *config, wg *sync.WaitGroup, conn *net.UDPConn) {
+func handleUDP(app *Config, wg *sync.WaitGroup, conn *net.UDPConn) {
 	defer wg.Done()
 
 	tab := map[string]*udpInfo{}
