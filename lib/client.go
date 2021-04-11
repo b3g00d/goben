@@ -224,7 +224,7 @@ func handleConnectionClient(app *Config, wg *sync.WaitGroup, conn net.Conn, c, c
 	log.Printf("handleConnectionClient: closing: %d/%d %v", c, connections, conn.RemoteAddr())
 }
 
-func getBufSize(opt options, isUDP bool) (bufSizeIn int, bufSizeOut int) {
+func getBufSize(opt Options, isUDP bool) (bufSizeIn int, bufSizeOut int) {
 	if isUDP {
 		bufSizeIn = opt.UDPReadSize
 		bufSizeOut = opt.UDPWriteSize
@@ -235,7 +235,7 @@ func getBufSize(opt options, isUDP bool) (bufSizeIn int, bufSizeOut int) {
 	return
 }
 
-func clientReader(conn net.Conn, c, connections int, done chan struct{}, bufSize int, opt options, stat *ChartData, agg *aggregate) {
+func clientReader(conn net.Conn, c, connections int, done chan struct{}, bufSize int, opt Options, stat *ChartData, agg *aggregate) {
 	log.Printf("clientReader: starting: %d/%d %v", c, connections, conn.RemoteAddr())
 
 	connIndex := fmt.Sprintf("%d/%d", c, connections)
@@ -249,7 +249,7 @@ func clientReader(conn net.Conn, c, connections int, done chan struct{}, bufSize
 	log.Printf("clientReader: exiting: %d/%d %v", c, connections, conn.RemoteAddr())
 }
 
-func clientWriter(conn net.Conn, c, connections int, done chan struct{}, bufSize int, opt options, stat *ChartData, agg *aggregate) {
+func clientWriter(conn net.Conn, c, connections int, done chan struct{}, bufSize int, opt Options, stat *ChartData, agg *aggregate) {
 	log.Printf("clientWriter: starting: %d/%d %v", c, connections, conn.RemoteAddr())
 
 	connIndex := fmt.Sprintf("%d/%d", c, connections)

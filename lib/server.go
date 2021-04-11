@@ -147,7 +147,7 @@ func handleTCP(app *Config, wg *sync.WaitGroup, listener net.Listener, isTLS boo
 
 type udpInfo struct {
 	remote *net.UDPAddr
-	opt    options
+	opt    Options
 	acc    *account
 	start  time.Time
 	id     int
@@ -227,7 +227,7 @@ func handleConnection(conn net.Conn, c, connections int, isTLS bool, aggReader, 
 	log.Printf("handleConnection: incoming: %s %v", protoLabel(isTLS), conn.RemoteAddr())
 
 	// receive options
-	var opt options
+	var opt Options
 	dec := gob.NewDecoder(conn)
 	if errOpt := dec.Decode(&opt); errOpt != nil {
 		log.Printf("handleConnection: options failure: %v", errOpt)
@@ -258,7 +258,7 @@ func handleConnection(conn net.Conn, c, connections int, isTLS bool, aggReader, 
 	log.Printf("handleConnection: closing: %v", conn.RemoteAddr())
 }
 
-func serverReader(conn net.Conn, opt options, c, connections int, isTLS bool, agg *aggregate) {
+func serverReader(conn net.Conn, opt Options, c, connections int, isTLS bool, agg *aggregate) {
 
 	log.Printf("serverReader: starting: %s %v", protoLabel(isTLS), conn.RemoteAddr())
 
@@ -278,7 +278,7 @@ func protoLabel(isTLS bool) string {
 	return "TCP"
 }
 
-func serverWriter(conn net.Conn, opt options, c, connections int, isTLS bool, agg *aggregate) {
+func serverWriter(conn net.Conn, opt Options, c, connections int, isTLS bool, agg *aggregate) {
 
 	log.Printf("serverWriter: starting: %s %v", protoLabel(isTLS), conn.RemoteAddr())
 
@@ -291,7 +291,7 @@ func serverWriter(conn net.Conn, opt options, c, connections int, isTLS bool, ag
 	log.Printf("serverWriter: exiting: %v", conn.RemoteAddr())
 }
 
-func serverWriterTo(conn *net.UDPConn, opt options, dst net.Addr, acc *account, c, connections int, agg *aggregate) {
+func serverWriterTo(conn *net.UDPConn, opt Options, dst net.Addr, acc *account, c, connections int, agg *aggregate) {
 	log.Printf("serverWriterTo: starting: UDP %v", dst)
 
 	start := acc.prevTime
