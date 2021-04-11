@@ -1,4 +1,4 @@
-package main
+package lib
 
 import (
 	"bytes"
@@ -18,7 +18,7 @@ import (
 func open(app *Config) {
 
 	var proto string
-	if app.udp {
+	if app.UDP {
 		proto = "udp"
 	} else {
 		proto = "tcp"
@@ -31,43 +31,43 @@ func open(app *Config) {
 
 	dialer := net.Dialer{}
 
-	if app.localAddr != "" {
-		if app.udp {
-			addr, err := net.ResolveUDPAddr(proto, app.localAddr)
+	if app.LocalAddr != "" {
+		if app.UDP {
+			addr, err := net.ResolveUDPAddr(proto, app.LocalAddr)
 			if err != nil {
-				log.Printf("open: resolve %s localAddr=%s: %v", proto, app.localAddr, err)
+				log.Printf("open: resolve %s localAddr=%s: %v", proto, app.LocalAddr, err)
 			}
 			dialer.LocalAddr = addr
 		} else {
-			addr, err := net.ResolveTCPAddr(proto, app.localAddr)
+			addr, err := net.ResolveTCPAddr(proto, app.LocalAddr)
 			if err != nil {
-				log.Printf("open: resolve %s localAddr=%s: %v", proto, app.localAddr, err)
+				log.Printf("open: resolve %s localAddr=%s: %v", proto, app.LocalAddr, err)
 			}
 			dialer.LocalAddr = addr
 		}
 		log.Printf("open: localAddr: %s", dialer.LocalAddr)
 	}
 
-	for _, h := range app.hosts {
+	for _, h := range app.Hosts {
 
-		hh := appendPortIfMissing(h, app.defaultPort)
+		hh := appendPortIfMissing(h, app.DefaultPort)
 
-		for i := 0; i < app.connections; i++ {
+		for i := 0; i < app.Connections; i++ {
 
-			log.Printf("open: opening TLS=%v %s %d/%d: %s", app.tls, proto, i, app.connections, hh)
+			log.Printf("open: opening TLS=%v %s %d/%d: %s", app.TLS, proto, i, app.Connections, hh)
 
-			if !app.udp && app.tls {
+			if !app.UDP && app.TLS {
 				// try TLS first
 				log.Printf("open: trying TLS")
 				conn, errDialTLS := tlsDial(dialer, proto, hh)
 				if errDialTLS == nil {
-					spawnClient(app, &wg, conn, i, app.connections, true, &aggReader, &aggWriter)
+					spawnClient(app, &wg, conn, i, app.Connections, true, &aggReader, &aggWriter)
 					continue
 				}
 				log.Printf("open: trying TLS: failure: %s: %s: %v", proto, hh, errDialTLS)
 			}
 
-			if !app.udp {
+			if !app.UDP {
 				log.Printf("open: trying non-TLS TCP")
 			}
 
@@ -76,7 +76,7 @@ func open(app *Config) {
 				log.Printf("open: dial %s: %s: %v", proto, hh, errDial)
 				continue
 			}
-			spawnClient(app, &wg, conn, i, app.connections, false, &aggReader, &aggWriter)
+			spawnClient(app, &wg, conn, i, app.Connections, false, &aggReader, &aggWriter)
 		}
 	}
 
@@ -108,8 +108,8 @@ type ExportInfo struct {
 }
 
 func sendOptions(app *Config, conn io.Writer) error {
-	opt := app.opt
-	if app.udp {
+	opt := app.Opt
+	if app.UDP {
 		var optBuf bytes.Buffer
 		enc := gob.NewEncoder(&optBuf)
 		if errOpt := enc.Encode(&opt); errOpt != nil {
@@ -140,14 +140,14 @@ func handleConnectionClient(app *Config, wg *sync.WaitGroup, conn net.Conn, c, c
 	if errOpt := sendOptions(app, conn); errOpt != nil {
 		return
 	}
-	opt := app.opt
+	opt := app.Opt
 	log.Printf("handleConnectionClient: options sent: %v", opt)
 
 	// receive ack
 	//log.Printf("handleConnectionClient: FIXME WRITEME server does not send ack for UDP")
-	if !app.udp {
+	if !app.UDP {
 		var a ack
-		if errAck := ackRecv(app.udp, conn, &a); errAck != nil {
+		if errAck := ackRecv(app.UDP, conn, &a); errAck != nil {
 			log.Printf("handleConnectionClient: receiving ack: %v", errAck)
 			return
 		}
@@ -165,35 +165,35 @@ func handleConnectionClient(app *Config, wg *sync.WaitGroup, conn net.Conn, c, c
 	var input *ChartData
 	var output *ChartData
 
-	if app.csv != "" || app.export != "" || app.chart != "" || app.ascii {
+	if app.Csv != "" || app.Export != "" || app.Chart != "" || app.ASCII {
 		input = &info.Input
 		output = &info.Output
 	}
 
-	bufSizeIn, bufSizeOut := getBufSize(opt, app.udp)
+	bufSizeIn, bufSizeOut := getBufSize(opt, app.UDP)
 
 	go clientReader(conn, c, connections, doneReader, bufSizeIn, opt, input, aggReader)
-	if !app.passiveClient {
+	if !app.PassiveClient {
 		go clientWriter(conn, c, connections, doneWriter, bufSizeOut, opt, output, aggWriter)
 	}
 
-	tickerPeriod := time.NewTimer(app.opt.TotalDuration)
+	tickerPeriod := time.NewTimer(app.Opt.TotalDuration)
 
 	<-tickerPeriod.C
-	log.Printf("handleConnectionClient: %v timer", app.opt.TotalDuration)
+	log.Printf("handleConnectionClient: %v timer", app.Opt.TotalDuration)
 
 	tickerPeriod.Stop()
 
 	conn.Close() // force reader/writer to quit
 
 	<-doneReader // wait reader exit
-	if !app.passiveClient {
+	if !app.PassiveClient {
 		<-doneWriter // wait writer exit
 	}
 
-	if app.csv != "" {
+	if app.Csv != "" {
 
-		filename := fmt.Sprintf(app.csv, c, formatAddress(conn))
+		filename := fmt.Sprintf(app.Csv, c, formatAddress(conn))
 		log.Printf("exporting CSV test results to: %s", filename)
 		errExport := exportCsv(filename, &info)
 		if errExport != nil {
@@ -201,8 +201,8 @@ func handleConnectionClient(app *Config, wg *sync.WaitGroup, conn net.Conn, c, c
 		}
 	}
 
-	if app.export != "" {
-		filename := fmt.Sprintf(app.export, c, formatAddress(conn))
+	if app.Export != "" {
+		filename := fmt.Sprintf(app.Export, c, formatAddress(conn))
 		log.Printf("exporting YAML test results to: %s", filename)
 		errExport := export(filename, &info)
 		if errExport != nil {
@@ -210,8 +210,8 @@ func handleConnectionClient(app *Config, wg *sync.WaitGroup, conn net.Conn, c, c
 		}
 	}
 
-	if app.chart != "" {
-		filename := fmt.Sprintf(app.chart, c, formatAddress(conn))
+	if app.Chart != "" {
+		filename := fmt.Sprintf(app.Chart, c, formatAddress(conn))
 		log.Printf("rendering chart to: %s", filename)
 		errRender := chartRender(filename, &info.Input, &info.Output)
 		if errRender != nil {

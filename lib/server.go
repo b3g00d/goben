@@ -1,4 +1,4 @@
-package main
+package lib
 
 import (
 	"bytes"
@@ -14,25 +14,31 @@ import (
 
 func serve(app *Config) {
 
-	if app.tls && !fileExists(app.tlsKey) {
-		log.Printf("key file not found: %s - disabling TLS", app.tlsKey)
-		app.tls = false
+	if app.TLS && !fileExists(app.TLSKey) {
+		log.Printf("key file not found: %s - disabling TLS", app.TLSKey)
+		app.TLS = false
 	}
 
-	if app.tls && !fileExists(app.tlsCert) {
-		log.Printf("cert file not found: %s - disabling TLS", app.tlsCert)
-		app.tls = false
+	if app.TLS && !fileExists(app.TLSCert) {
+		log.Printf("cert file not found: %s - disabling TLS", app.TLSCert)
+		app.TLS = false
 	}
 
 	var wg sync.WaitGroup
 
-	for _, h := range app.listeners {
-		hh := appendPortIfMissing(h, app.defaultPort)
+	for _, h := range app.Listeners {
+		hh := appendPortIfMissing(h, app.DefaultPort)
 		listenTCP(app, &wg, hh)
 		listenUDP(app, &wg, hh)
 	}
 
 	wg.Wait()
+}
+
+
+// BuildServer for public func
+func BuildServer(app *Config) {
+	serve(app)
 }
 
 func fileExists(path string) bool {
@@ -41,10 +47,10 @@ func fileExists(path string) bool {
 }
 
 func listenTCP(app *Config, wg *sync.WaitGroup, h string) {
-	log.Printf("listenTCP: TLS=%v spawning TCP listener: %s", app.tls, h)
+	log.Printf("listenTCP: TLS=%v spawning TCP listener: %s", app.TLS, h)
 
 	// first try TLS
-	if app.tls {
+	if app.TLS {
 		listener, errTLS := listenTLS(app, h)
 		if errTLS == nil {
 			spawnAcceptLoopTCP(app, wg, listener, true)
@@ -56,7 +62,7 @@ func listenTCP(app *Config, wg *sync.WaitGroup, h string) {
 
 	listener, errListen := net.Listen("tcp", h)
 	if errListen != nil {
-		log.Printf("listenTCP: TLS=%v %s: %v", app.tls, h, errListen)
+		log.Printf("listenTCP: TLS=%v %s: %v", app.TLS, h, errListen)
 		return
 	}
 	spawnAcceptLoopTCP(app, wg, listener, false)
@@ -68,10 +74,10 @@ func spawnAcceptLoopTCP(app *Config, wg *sync.WaitGroup, listener net.Listener, 
 }
 
 func listenTLS(app *Config, h string) (net.Listener, error) {
-	cert, errCert := tls.LoadX509KeyPair(app.tlsCert, app.tlsKey)
+	cert, errCert := tls.LoadX509KeyPair(app.TLSCert, app.TLSKey)
 	if errCert != nil {
 		log.Printf("listenTLS: failure loading TLS key pair: %v", errCert)
-		app.tls = false // disable TLS
+		app.TLS = false // disable TLS
 		return nil, errCert
 	}
 
@@ -152,7 +158,7 @@ func handleUDP(app *Config, wg *sync.WaitGroup, conn *net.UDPConn) {
 
 	tab := map[string]*udpInfo{}
 
-	buf := make([]byte, app.opt.UDPReadSize)
+	buf := make([]byte, app.Opt.UDPReadSize)
 
 	var aggReader aggregate
 	var aggWriter aggregate
