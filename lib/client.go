@@ -376,6 +376,6 @@ func formatAddress(con net.Conn) string {
 }
 
 // BuildClient for another lib to use
-func BuildClient(app *Config) {
-	open(app)
+func BuildClient(app *Config) (bool, int64, int64) {
+	return open(app)
 }
