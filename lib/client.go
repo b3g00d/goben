@@ -15,8 +15,7 @@ import (
 	"time"
 )
 
-func open(app *Config) {
-
+func open(app *Config) (bool, int64, int64) {
 	var proto string
 	if app.UDP {
 		proto = "udp"
@@ -28,6 +27,8 @@ func open(app *Config) {
 
 	var aggReader aggregate
 	var aggWriter aggregate
+
+	is_connected := false
 
 	dialer := net.Dialer{}
 
@@ -47,6 +48,8 @@ func open(app *Config) {
 		}
 		log.Printf("open: localAddr: %s", dialer.LocalAddr)
 	}
+
+	log.Printf("hosts: %s", app.Hosts)
 
 	for _, h := range app.Hosts {
 
@@ -77,6 +80,7 @@ func open(app *Config) {
 				continue
 			}
 			spawnClient(app, &wg, conn, i, app.Connections, false, &aggReader, &aggWriter)
+			is_connected = true
 		}
 	}
 
@@ -84,6 +88,8 @@ func open(app *Config) {
 
 	log.Printf("aggregate reading: %d Mbps %d recv/s", aggReader.Mbps, aggReader.Cps)
 	log.Printf("aggregate writing: %d Mbps %d send/s", aggWriter.Mbps, aggWriter.Cps)
+
+	return is_connected, aggReader.Mbps, aggWriter.Mbps
 }
 
 func spawnClient(app *Config, wg *sync.WaitGroup, conn net.Conn, c, connections int, isTLS bool, aggReader, aggWriter *aggregate) {
@@ -144,7 +150,7 @@ func handleConnectionClient(app *Config, wg *sync.WaitGroup, conn net.Conn, c, c
 	log.Printf("handleConnectionClient: options sent: %v", opt)
 
 	// receive ack
-	//log.Printf("handleConnectionClient: FIXME WRITEME server does not send ack for UDP")
+	// log.Printf("handleConnectionClient: FIXME WRITEME server does not send ack for UDP")
 	if !app.UDP {
 		var a ack
 		if errAck := ackRecv(app.UDP, conn, &a); errAck != nil {
@@ -331,7 +337,6 @@ func (a *account) average(start time.Time, conn, label, cpsLabel string, agg *ag
 }
 
 func workLoop(conn, label, cpsLabel string, f call, buf []byte, reportInterval time.Duration, maxSpeed float64, stat *ChartData, agg *aggregate) {
-
 	start := time.Now()
 	acc := &account{}
 	acc.prevTime = start
